@@ -1,6 +1,6 @@
 {
   "name": "ai-run-mvp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Terminal output Chinese explainer MVP",
   "type": "module",
   "bin": {
@@ -8,7 +8,9 @@
   },
   "scripts": {
     "start": "node src/cli.js",
-    "demo": "node src/cli.js node -e \"console.error('Module not found: Cannot find module axios'); console.error('EACCES: permission denied');\""
+    "demo": "node src/cli.js sh -c \"echo 'Module not found: Cannot find module axios' 1>&2; echo 'EACCES: permission denied' 1>&2\"",
+    "test": "node scripts-test.js",
+    "bench": "node scripts-bench.js"
   },
   "engines": {
     "node": ">=18"

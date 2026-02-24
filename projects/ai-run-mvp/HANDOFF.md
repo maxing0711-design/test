@@ -1,40 +1,42 @@
 # HANDOFF | ai-run-mvp
 
 ## 1) 项目一句话目标
-- 目标：做一个终端实时中文解释层 MVP，先能运行并解释常见 warn/error。
-- 当前阶段：MVP v0.1（CLI + 规则解释）
-- 关键约束：先保证可运行与可验证，不引入复杂依赖。
+- 目标：做一个终端实时中文解释层 MVP，优先低延迟与可读性。
+- 当前阶段：MVP v0.2（CLI + 规则解释 + 脱敏 + 可选LLM增强）
+- 关键约束：主链路必须同步、低延迟；LLM 只能异步增强且可关闭。
 
 ## 2) 当前状态
-- 进行中：规则库扩展、真实报错样本验证
-- 已完成：CLI 执行、stdout/stderr 监听、中文解释输出、README
+- 进行中：规则库扩展、真实日志样本覆盖
+- 已完成：CLI 执行、stdout/stderr 监听、同步中文解释、脱敏器、LLM异步增强开关、测试与基准脚本
 - 阻塞点：暂无
 
 ## 3) 今日完成
-- ✅ 完成 1：创建 ai-run CLI 原型并可执行命令
-  - 涉及文件：ai-run/src/cli.js
-  - 影响范围：命令执行与输出监听
-- ✅ 完成 2：实现规则引擎解释层
-  - 涉及文件：ai-run/src/explain.js
-  - 影响范围：warn/error 中文解释与建议
-- ✅ 完成 3：补充使用文档
-  - 涉及文件：ai-run/README.md, ai-run/package.json
-  - 影响范围：安装与演示路径
+- ✅ 完成 1：实现低延迟同步解释主链路
+  - 涉及文件：ai-run/src/cli.js, ai-run/src/explain.js
+  - 影响范围：warn/error 解释速度与可读性
+- ✅ 完成 2：实现脱敏与可选LLM增强
+  - 涉及文件：ai-run/src/redact.js, ai-run/src/llm.js
+  - 影响范围：隐私安全与深度解释能力
+- ✅ 完成 3：补充测试/基准与文档
+  - 涉及文件：ai-run/scripts-test.js, ai-run/scripts-bench.js, ai-run/README.md, ai-run/package.json
+  - 影响范围：可验证性与晨间测试体验
 
 ## 4) 变更清单
 - 改动点：
-  1. 新增 `ai-run/` 项目目录与CLI
-  2. 新增规则解释模块
-  3. 新增 README 与 demo 命令
+  1. 新增 `redactSensitive` 脱敏模块
+  2. 新增 `maybeEnhanceWithLLM` 异步增强模块（超时保护）
+  3. 升级 explain 规则库与输出文案
+  4. 新增 test/bench 脚本并通过
 - 最短回滚方式：`git revert <commit>`
 
 ## 5) 下一步
-- ⏭ Step 1：增加敏感信息脱敏层（token/email/path）
-- ⏭ Step 2：接入可选 LLM 深度解释（仅 error）
-- 失败优先排查：child_process 输出流读取与 shell 兼容
+- ⏭ Step 1：按真实用户日志扩展规则库（Top 50 报错）
+- ⏭ Step 2：增加 `--only-error`/`--json` 输出模式
+- ⏭ Step 3：接入 WebSocket 侧边面板
+- 失败优先排查：shell 输出分行兼容、LLM timeout 处理
 
 ## 6) 明天从哪继续
 - 先读：`ai-run/src/cli.js` 与 `ai-run/src/explain.js`
-- 先做：脱敏器（pre-LLM）
-- 先验：demo 输出中敏感信息被替换
-- 预计坑：不同 shell 输出格式差异
+- 先做：补充规则库和参数开关
+- 先验：`npm run test && npm run bench && npm run demo`
+- 预计坑：不同系统 shell 对复合命令输出行为不一致

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import readline from 'node:readline';
-import { explainLine } from './explain.js';
+import { explainLine, detectLevel } from './explain.js';
+import { maybeEnhanceWithLLM } from './llm.js';
 
 const args = process.argv.slice(2);
 if (args.length === 0) {
@@ -12,7 +13,7 @@ if (args.length === 0) {
 
 const [cmd, ...cmdArgs] = args;
 console.log(`\n[ai-run] 启动命令: ${cmd} ${cmdArgs.join(' ')}`);
-console.log('[ai-run] 实时解释已开启（仅对 warn/error 输出中文说明）\n');
+console.log('[ai-run] 低延迟模式：规则引擎同步解释；可选 LLM 异步增强\n');
 
 const child = spawn(cmd, cmdArgs, {
   stdio: ['inherit', 'pipe', 'pipe'],
@@ -20,17 +21,35 @@ const child = spawn(cmd, cmdArgs, {
   env: process.env
 });
 
+function printExplain(writer, level, zh, next, tag = '中文解释') {
+  const icon = level === 'error' ? '🛑' : '⚠️';
+  writer.write(`${icon} [${tag}] ${zh}\n`);
+  if (next) writer.write(`👉 [建议动作] ${next}\n`);
+  writer.write('\n');
+}
+
 function streamWithExplain(stream, writer) {
   const rl = readline.createInterface({ input: stream });
+
   rl.on('line', (line) => {
     writer.write(line + '\n');
 
     const exp = explainLine(line);
-    if (exp) {
-      const icon = exp.level === 'error' ? '🛑' : '⚠️';
-      writer.write(`${icon} [中文解释] ${exp.zh}\n`);
-      writer.write(`👉 [建议动作] ${exp.next}\n\n`);
-    }
+    if (!exp) return;
+
+    // 1) 同步低延迟解释
+    printExplain(writer, exp.level, exp.zh, exp.next);
+
+    // 2) 异步 LLM 增强（可开关，不阻塞主流程）
+    const level = detectLevel(line);
+    maybeEnhanceWithLLM(line, level)
+      .then((enhanced) => {
+        if (!enhanced?.zh) return;
+        printExplain(writer, level, enhanced.zh, enhanced.next, 'LLM增强');
+      })
+      .catch(() => {
+        // 静默失败，保证低延迟主链路
+      });
   });
 }
 
