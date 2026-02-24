@@ -1,10 +1,11 @@
 # ai-run MVP (v0.2)
 
-终端“实时中文解释层”最小可用版本（低延迟优先）。
+终端“实时解释层”最小可用版本（支持中/英/日/西，低延迟优先）。
 
 ## 核心特性
 
 - 实时执行并透传原命令输出
+- **多语言支持**：zh / en / ja / es
 - **同步低延迟解释**：规则引擎即时解释 warn/error
 - **异步增强解释（可选）**：LLM 在后台补充更通俗说明
 - 脱敏模块（供 LLM 路径使用）：token/email/ip/path 自动打码
@@ -14,7 +15,10 @@
 ```bash
 cd ai-run
 npm link
-ai-run npm run dev
+ai-run --lang zh npm run dev
+ai-run --lang en npm run dev
+ai-run --lang ja npm run dev
+ai-run --lang es npm run dev
 ```
 
 ## 演示
@@ -54,3 +58,9 @@ npm run bench
 - 增加 WebSocket 侧边面板
 - 增加“只看错误上下文”折叠视图
 - 增加更丰富的语言和框架专属规则包
+
+
+## 语言参数
+
+- 命令行：`--lang zh|en|ja|es`
+- 环境变量：`AI_RUN_LANG=zh|en|ja|es`

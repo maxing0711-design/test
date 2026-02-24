@@ -9,24 +9,32 @@ function withTimeout(promise, ms) {
   ]);
 }
 
-export async function maybeEnhanceWithLLM(line, level) {
+const LANG_HINT = {
+  zh: '请使用简体中文',
+  en: 'Please answer in English',
+  ja: '日本語で回答してください',
+  es: 'Responde en español'
+};
+
+export async function maybeEnhanceWithLLM(line, level, lang = 'zh') {
   const enabled = process.env.AI_RUN_LLM === '1';
   const apiKey = process.env.OPENAI_API_KEY;
   if (!enabled || !apiKey || level === 'info') return null;
 
   const sanitized = redactSensitive(line).slice(0, 1200);
-  if (cache.has(sanitized)) return cache.get(sanitized);
+  const cacheKey = `${lang}:${sanitized}`;
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
 
   const body = {
     model: process.env.AI_RUN_MODEL || 'gpt-4o-mini',
     messages: [
       {
         role: 'system',
-        content: '你是终端报错解释助手。请用简体中文输出 JSON，字段: zh(一句话解释), next(一句话建议)。简短易懂。'
+        content: `You are a terminal error explainer. ${LANG_HINT[lang] || LANG_HINT.zh}. Return JSON with fields: zh, next. Keep concise and practical.`
       },
       {
         role: 'user',
-        content: `级别:${level}\n日志:${sanitized}`
+        content: `level:${level}\nlog:${sanitized}`
       }
     ],
     temperature: 0.2,
@@ -49,10 +57,7 @@ export async function maybeEnhanceWithLLM(line, level) {
 
   let parsed;
   try { parsed = JSON.parse(raw); } catch { return null; }
-  const out = {
-    zh: parsed.zh || null,
-    next: parsed.next || null
-  };
-  cache.set(sanitized, out);
+  const out = { zh: parsed.zh || null, next: parsed.next || null };
+  cache.set(cacheKey, out);
   return out;
 }

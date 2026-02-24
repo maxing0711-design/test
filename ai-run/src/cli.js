@@ -3,28 +3,44 @@ import { spawn } from 'node:child_process';
 import readline from 'node:readline';
 import { explainLine, detectLevel } from './explain.js';
 import { maybeEnhanceWithLLM } from './llm.js';
+import { normalizeLang, t } from './i18n.js';
 
-const args = process.argv.slice(2);
+const raw = process.argv.slice(2);
+let lang = process.env.AI_RUN_LANG || 'zh';
+const args = [];
+for (let i = 0; i < raw.length; i++) {
+  if (raw[i] === '--lang' && raw[i + 1]) {
+    lang = raw[i + 1];
+    i++;
+    continue;
+  }
+  args.push(raw[i]);
+}
+
+const normalized = normalizeLang(lang);
+const ui = t(normalized);
+if (normalized !== lang) console.log(ui.unknownLang);
+
 if (args.length === 0) {
-  console.log('用法: ai-run <你的命令> [参数...]');
-  console.log('示例: ai-run npm run dev');
+  console.log(ui.usage1);
+  console.log(ui.usage2);
   process.exit(1);
 }
 
 const [cmd, ...cmdArgs] = args;
-console.log(`\n[ai-run] 启动命令: ${cmd} ${cmdArgs.join(' ')}`);
-console.log('[ai-run] 低延迟模式：规则引擎同步解释；可选 LLM 异步增强\n');
+console.log(`\n${ui.start}: ${cmd} ${cmdArgs.join(' ')}`);
+console.log(`${ui.mode}\n`);
 
 const child = spawn(cmd, cmdArgs, {
   stdio: ['inherit', 'pipe', 'pipe'],
-  shell: true,
-  env: process.env
+  shell: false,
+  env: { ...process.env, AI_RUN_LANG: normalized }
 });
 
-function printExplain(writer, level, zh, next, tag = '中文解释') {
+function printExplain(writer, level, zh, next, tag = ui.explainTag) {
   const icon = level === 'error' ? '🛑' : '⚠️';
   writer.write(`${icon} [${tag}] ${zh}\n`);
-  if (next) writer.write(`👉 [建议动作] ${next}\n`);
+  if (next) writer.write(`👉 [${ui.next}] ${next}\n`);
   writer.write('\n');
 }
 
@@ -34,22 +50,18 @@ function streamWithExplain(stream, writer) {
   rl.on('line', (line) => {
     writer.write(line + '\n');
 
-    const exp = explainLine(line);
+    const exp = explainLine(line, normalized);
     if (!exp) return;
 
-    // 1) 同步低延迟解释
     printExplain(writer, exp.level, exp.zh, exp.next);
 
-    // 2) 异步 LLM 增强（可开关，不阻塞主流程）
     const level = detectLevel(line);
-    maybeEnhanceWithLLM(line, level)
+    maybeEnhanceWithLLM(line, level, normalized)
       .then((enhanced) => {
         if (!enhanced?.zh) return;
-        printExplain(writer, level, enhanced.zh, enhanced.next, 'LLM增强');
+        printExplain(writer, level, enhanced.zh, enhanced.next, ui.llmTag);
       })
-      .catch(() => {
-        // 静默失败，保证低延迟主链路
-      });
+      .catch(() => {});
   });
 }
 
@@ -57,6 +69,6 @@ streamWithExplain(child.stdout, process.stdout);
 streamWithExplain(child.stderr, process.stderr);
 
 child.on('close', (code) => {
-  console.log(`[ai-run] 命令结束，退出码: ${code}`);
+  console.log(`${ui.ended}: ${code}`);
   process.exit(code ?? 0);
 });
