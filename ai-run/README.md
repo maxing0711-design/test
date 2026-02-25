@@ -1,76 +1,76 @@
-# ai-run MVP (v0.4)
+# ai-run MVP (v0.5)
 
-终端“实时解释层”最小可用版本（支持中/英/日/西，低延迟优先）。
+终端实时翻译工具（本地运行、低延迟、支持中英日西）。
 
-## 核心特性
+## 你关心的安全边界
 
-- 实时执行并透传原命令输出
-- **多语言支持**：zh / en / ja / es
-- **同步低延迟解释**：规则引擎即时解释 warn/error
-- **异步增强解释（可选）**：LLM 在后台补充更通俗说明
-- 脱敏模块（供 LLM 路径使用）：token/email/ip/path 自动打码
-- **侧边翻译面板（新）**：原终端不插入翻译，翻译在独立面板实时显示
+- ✅ **只读模式**：只读取终端输出做翻译，不执行终端命令
+- ✅ **本地运行**：默认不需要服务器
+- ✅ **本地存储**：翻译日志只保存在本机，默认保留 10 天
+- ✅ **可选云增强**：LLM 增强默认关闭，可手动开启
 
-## 快速使用
+## 快速开始
 
 ```bash
 cd ai-run
 npm link
+```
+
+### 1) 桌面面板（推荐）
+
+先启动本地常驻面板（后台）：
+
+```bash
+npm run desktop
+# 会自动打开 http://127.0.0.1:18777
+```
+
+然后在任意终端会话里运行：
+
+```bash
+ai-run --panel --session term-a --lang zh npm run dev
+```
+
+你会在固定面板里看到该会话实时翻译，不污染原终端。
+
+### 2) 仅命令行模式
+
+```bash
 ai-run --lang zh npm run dev
 ```
 
-## 侧边面板模式（推荐）
+## 多语言
 
 ```bash
-ai-run --panel --lang zh npm run dev
-# 打开输出里的 panel 地址（默认 http://127.0.0.1:18777）
+ai-run --lang zh npm run dev
+ai-run --lang en npm run dev
+ai-run --lang ja npm run dev
+ai-run --lang es npm run dev
 ```
 
-可选参数：
+## 常用参数
 
-- `--panel-port 18888` 自定义面板端口
-- `--no-inline` 不在终端内打印翻译（`--panel` 默认即关闭 inline）
+- `--panel` 把翻译发送到本地面板
+- `--session <id>` 设置会话名（多终端并行时很有用）
+- `--no-inline` 不在终端内显示翻译
+- `--daemon` 启动本地常驻翻译面板服务
+- `--panel-port 18777` 自定义面板端口
 
-## 演示
+## 测试
 
 ```bash
-cd ai-run
-npm run demo
+npm run test
+npm run bench
 npm run demo_panel
 ```
 
-## 开启 LLM 异步增强（可选）
+## 可选：开启 LLM 增强解释
 
 ```bash
 export AI_RUN_LLM=1
 export OPENAI_API_KEY=你的key
-# 可选：export AI_RUN_LLM_TIMEOUT_MS=1200
-ai-run --panel --lang zh npm run dev
+ai-run --panel --lang zh --session term-a npm run dev
 ```
 
-说明：LLM 失败或超时不会阻塞主流程，主流程始终由规则引擎同步输出。
+> LLM 失败/超时不会阻塞主流程。
 
-## 测试与基准
-
-```bash
-cd ai-run
-npm run test
-npm run bench
-```
-
-## 语言参数
-
-- 命令行：`--lang zh|en|ja|es`
-- 环境变量：`AI_RUN_LANG=zh|en|ja|es`
-
-## 延迟策略
-
-1. 主链路：规则引擎本地匹配（毫秒级）
-2. 增强链路：LLM 异步补充（可开关）
-3. 只处理 warn/error，降低噪音和开销
-
-## 下一步（v0.5）
-
-- 增加 `--mode all` 全日志翻译与节流策略
-- 增加 `--only-error` / `--json` 输出模式
-- 面板增加会话总结与导出
