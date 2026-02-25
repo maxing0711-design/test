@@ -40,3 +40,11 @@
 - 先做：补充规则库和参数开关
 - 先验：`npm run test && npm run bench && npm run demo`
 - 预计坑：不同系统 shell 对复合命令输出行为不一致
+
+
+## v0.4 夜间增量
+- 新增侧边翻译面板（SSE）：`src/panel.js`
+- CLI 新增参数：`--panel`、`--panel-port`、`--no-inline`
+- 默认在 panel 模式下不污染主终端输出
+- README 增加面板模式说明与 demo_panel
+- 已验证：test/bench 通过，panel 本地可访问
